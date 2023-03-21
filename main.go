@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -32,14 +34,32 @@ func getDiskPathWindows() (string, error) {
 	return "", fmt.Errorf("MPC drive not found")
 }
 
+func getFileList(path string) {
+	err := filepath.Walk(path,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			if len(info.Name()) > 16 {
+				shortened := info.Name()[len(info.Name())-16:]
+				newPath := filepath.Join(filepath.Dir(path), shortened)
+				fmt.Println("Renaming", path, "to", newPath)
+				return os.Rename(path, newPath)
+			}
+			return nil
+		})
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func main() {
 	path, err := getDiskPathWindows()
 	if err != nil {
 		panic(err)
 	}
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(files)
+	getFileList(path)
 }
